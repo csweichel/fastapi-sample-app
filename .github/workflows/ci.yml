@@ -7,7 +7,7 @@ on:
     branches: [ main, master ]
 
 jobs:
-  install:
+  lint:
     runs-on: ubuntu-latest
     container:
       image: python:3.10.14
@@ -22,10 +22,9 @@ jobs:
             ~/.cache/pip
             ~/.cache/pypoetry
             .venv
-          key: poetry-${{ hashFiles('poetry.lock') }}-${{ hashFiles('.github/workflows/ci.yml') }}
+          key: poetry-lint-${{ hashFiles('poetry.lock') }}
           restore-keys: |
-            poetry-${{ hashFiles('poetry.lock') }}-
-            poetry-
+            poetry-lint-
 
       - name: Install Poetry
         run: pip install poetry==1.8.3
@@ -35,46 +34,7 @@ jobs:
           poetry config virtualenvs.in-project true
           poetry config --list
 
-      - name: Export requirements
-        run: poetry export -f requirements.txt --output requirements.txt --without-hashes
-
       - name: Install dependencies
-        run: poetry install
-
-      - name: Upload requirements artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: requirements
-          path: requirements.txt
-
-      - name: Upload virtual environment
-        uses: actions/upload-artifact@v4
-        with:
-          name: venv
-          path: .venv
-
-  lint:
-    runs-on: ubuntu-latest
-    container:
-      image: python:3.10.14
-    needs: install
-    steps:
-      - name: Check out repository code
-        uses: actions/checkout@v4
-
-      - name: Download virtual environment
-        uses: actions/download-artifact@v4
-        with:
-          name: venv
-          path: .venv
-
-      - name: Install Poetry
-        run: pip install poetry==1.8.3
-
-      - name: Configure Poetry
-        run: poetry config virtualenvs.in-project true
-
-      - name: Install lint dependencies
         run: poetry install --with lint
 
       - name: Run ruff check
@@ -84,24 +44,30 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: python:3.10.14
-    needs: install
     steps:
       - name: Check out repository code
         uses: actions/checkout@v4
 
-      - name: Download virtual environment
-        uses: actions/download-artifact@v4
+      - name: Cache Poetry dependencies
+        uses: actions/cache@v4
         with:
-          name: venv
-          path: .venv
+          path: |
+            ~/.cache/pip
+            ~/.cache/pypoetry
+            .venv
+          key: poetry-test-${{ hashFiles('poetry.lock') }}
+          restore-keys: |
+            poetry-test-
 
       - name: Install Poetry
         run: pip install poetry==1.8.3
 
       - name: Configure Poetry
-        run: poetry config virtualenvs.in-project true
+        run: |
+          poetry config virtualenvs.in-project true
+          poetry config --list
 
-      - name: Install test dependencies
+      - name: Install dependencies
         run: poetry install --with test
 
       - name: Run pytest
