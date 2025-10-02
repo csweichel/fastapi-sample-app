@@ -46,12 +46,6 @@ jobs:
       - name: Install dependencies
         run: poetry install
 
-      - name: Cache requirements.txt
-        uses: actions/cache/save@v4
-        with:
-          path: requirements.txt
-          key: requirements-${{ hashFiles('poetry.lock', '.github/workflows/ci.yml') }}
-
   lint:
     runs-on: ubuntu-latest
     container:
